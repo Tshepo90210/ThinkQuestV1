@@ -5,6 +5,12 @@ import cors from 'cors';
 import axios from 'axios';
 import multer from 'multer'; // Import multer
 import { fileTypeFromBuffer } from 'file-type'; // Import file-type
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+// Handle __dirname in ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 dotenv.config();
 
@@ -14,6 +20,9 @@ const port = process.env.PORT || 3001;
 app.use(cors());
 app.use(express.json()); // For parsing application/json
 app.use(express.urlencoded({ extended: true })); // For parsing application/x-www-form-urlencoded
+
+// Serve static files from the React app build directory
+app.use(express.static(path.join(__dirname, '..', 'dist')));
 
 const geminiApiKey = process.env.GEMINI_API_KEY; // Use VITE_ prefix for frontend
 if (!geminiApiKey) {
@@ -825,6 +834,14 @@ app.post('/api/update-avatar', async (req, res) => {
     console.error('Error updating avatar:', err);
     return res.status(500).json({ error: 'Failed to update avatar.', details: err.message });
   }
+});
+
+
+
+// The "catchall" handler: for any request that doesn't
+// match one above, send back React's index.html file.
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'dist', 'index.html'));
 });
 
 

@@ -5,11 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
-    "build:dev": "vite build --mode development",
+    "build": "tsc -p tsconfig.node.json && vite build",
+    "start": "node dist/server.js",
     "lint": "eslint .",
     "preview": "vite preview",
-    "start-server": "ts-node server.ts"
+    "dev:server": "ts-node server.ts"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
