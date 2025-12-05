@@ -7,7 +7,7 @@ import multer from 'multer';
 import { fileTypeFromBuffer } from 'file-type';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import pb from './src/lib/pocketbase.js';
+import PocketBase from 'pocketbase';
 
 // Handle __dirname in ES modules
 const __filename = fileURLToPath(import.meta.url);
@@ -32,6 +32,15 @@ if (!geminiApiKey) {
 }
 
 const genAI = new GoogleGenerativeAI(geminiApiKey);
+
+// Initialize PocketBase for the server
+const pocketbaseUrl = process.env.VITE_POCKETBASE_URL;
+if (!pocketbaseUrl) {
+  console.error('VITE_POCKETBASE_URL is not set for the server.');
+  process.exit(1);
+}
+const pb = new PocketBase(pocketbaseUrl);
+
 
 // Configure multer for memory storage
 const storage = multer.memoryStorage();
@@ -411,11 +420,11 @@ app.post('/api/gemini-persona', async (req: Request, res: Response) => {
         const { posterNotes, timelineNotes } = prototypeData;
 
         const posterNotesString = Object.entries(posterNotes)
-            .map(([boxId, notes]: [string, string[]]) => `  ${boxId}: ${notes.join(', ')}`)
+            .map(([boxId, notes]: [string, any]) => `  ${boxId}: ${notes.join(', ')}`)
             .join('\n');
 
         const timelineNotesString = Object.entries(timelineNotes)
-            .map(([weekId, notes]: [string, string[]]) => `  ${weekId}: ${notes.join(', ')}`)
+            .map(([weekId, notes]: [string, any]) => `  ${weekId}: ${notes.join(', ')}`)
             .join('\n');
 
         const prompt = `You are ${persona.name}, a ${persona.role} in SA. This prototype tries to solve ${problemTitle}. Here are the notes:
