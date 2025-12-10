@@ -150,7 +150,7 @@ const Ideate = () => {
       console.log('Ideate.tsx: Debugging requestBody - reflection:', requestBody.reflection);
       console.log('Ideate.tsx: Debugging requestBody - problem:', requestBody.problem);
 
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/gemini-score`, {
+      const response = await fetch(`/api/gemini-score`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(requestBody),

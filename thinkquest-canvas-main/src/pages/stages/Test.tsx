@@ -116,7 +116,7 @@ const PersonaFeedbackCard: React.FC<PersonaFeedbackCardProps> = ({ persona, prot
       try {
         setIsLoading(true);
         setError(null);
-        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/gemini-persona`, {
+        const response = await fetch(`/api/gemini-persona`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ persona, prototypeData }),
@@ -195,7 +195,7 @@ const Test = () => {
     const totalScore = stageScores.reduce((sum, score) => sum + score, 0);
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/complete-quest`, {
+      const response = await fetch(`/api/complete-quest`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

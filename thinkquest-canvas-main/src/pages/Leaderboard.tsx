@@ -42,7 +42,7 @@ const Leaderboard = () => {
       try {
         setIsLoading(true);
         setError(null);
-        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/leaderboard?problemId=${selectedProblem.id}`);
+        const response = await fetch(`/api/leaderboard?problemId=${selectedProblem.id}`);
         if (!response.ok) {
           const errorData = await response.json();
           throw new Error(errorData.error || 'Failed to fetch leaderboard data');

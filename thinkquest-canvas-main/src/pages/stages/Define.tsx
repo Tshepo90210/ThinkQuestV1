@@ -109,7 +109,7 @@ const Define = () => {
         console.log('  themes:', empathyThemes);
         console.log('  reflection:', reflection);
 
-        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/gemini-score`, {
+        const response = await fetch(`/api/gemini-score`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

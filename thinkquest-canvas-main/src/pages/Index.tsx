@@ -27,7 +27,7 @@ const Index = () => {
         setIsLoadingLeaderboard(true);
         setErrorLeaderboard(null);
         // Assuming problemId 1 for the landing page preview
-        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/leaderboard?problemId=1`);
+        const response = await fetch(`/api/leaderboard?problemId=1`);
         if (!response.ok) {
           const errorData = await response.json();
           throw new Error(errorData.error || 'Failed to fetch top innovators');

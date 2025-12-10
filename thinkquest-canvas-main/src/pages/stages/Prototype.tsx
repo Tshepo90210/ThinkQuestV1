@@ -506,7 +506,7 @@ const Prototype = () => {
         uploads: uploadedFilesBase64.filter(Boolean), // Filter out nulls if any
       };
 
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/gemini-score-prototype`, { // New endpoint
+      const response = await fetch(`/api/gemini-score-prototype`, { // New endpoint
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(requestBody),
