@@ -525,7 +525,7 @@ app.post('/api/update-avatar', async (req: Request, res: Response) => {
 });
 
 // The "catchall" handler
-app.get('*', (req: Request, res: Response) => {
+app.get('/*', (req: Request, res: Response) => {
   res.sendFile(path.join(__dirname, '..', 'dist', 'index.html'));
 });
 
