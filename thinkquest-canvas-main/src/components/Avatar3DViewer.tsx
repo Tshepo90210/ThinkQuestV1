@@ -85,8 +85,7 @@ export const Avatar3DViewer: React.FC<Avatar3DViewerProps> = ({ glbUrl, fallback
   const fov = 20;
 
   const finalGlbUrl = glbUrl.startsWith('https://models.readyplayer.me/')
-    ? `${import.meta.env.VITE_API_BASE_URL}/api/rpm-avatar-proxy?url=${encodeURIComponent(glbUrl)}`
-    : glbUrl;
+              ? `/api/rpm-avatar-proxy?url=${encodeURIComponent(glbUrl)}`    : glbUrl;
 
 
   if (error) {
