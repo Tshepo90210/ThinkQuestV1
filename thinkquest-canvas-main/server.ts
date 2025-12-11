@@ -1,6 +1,6 @@
-import express, { Request, Response } from 'express';
+import express from 'express';
 import dotenv from 'dotenv';
-import { GoogleGenerativeAI, Part } from '@google/generative-ai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import cors from 'cors';
 import axios from 'axios';
 import multer from 'multer';
@@ -58,7 +58,7 @@ interface Quest {
 // In-memory store for completed quests
 const completedQuests: Quest[] = [];
 
-app.post('/api/gemini-chat', async (req: Request, res: Response) => {
+app.post('/api/gemini-chat', async (req: express.Request, res: express.Response) => {
   const { name, role, backstory, question } = req.body;
 
   if (!name || !role || !backstory || !question) {
@@ -89,7 +89,7 @@ app.post('/api/gemini-chat', async (req: Request, res: Response) => {
   }
 });
 
-app.post('/api/gemini-score', upload.array('files', 5), async (req: Request, res: Response) => {
+app.post('/api/gemini-score', upload.array('files', 5), async (req: express.Request, res: express.Response) => {
   console.log('Server: Received /api/gemini-score request with body:', req.body);
   console.log('Server: Received files:', req.files);
 
@@ -179,8 +179,8 @@ app.post('/api/gemini-score', upload.array('files', 5), async (req: Request, res
         return res.status(400).json({ error: 'Missing empathy map input, reflection, insights, or themes for Empathy stage.' });
       }
 
-      const insightsString = JSON.parse(insights).map((i: any) => `Persona: ${i.persona}, Activity: ${i.activity}, Because: ${i.because}, But: ${i.but}`).join('\n');
-      const themesString = JSON.parse(themes).join('\n');
+      const insightsString = insights.map((i: any) => `Persona: ${i.persona}, Activity: ${i.activity}, Because: ${i.because}, But: ${i.but}`).join('\n');
+      const themesString = themes.join('\n');
       prompt = `Analyze the following user inputs for the Empathize stage...`; // Truncated
       const result = await model.generateContent(prompt);
       const response = await result.response;
@@ -291,7 +291,7 @@ app.post('/api/gemini-score', upload.array('files', 5), async (req: Request, res
   }
 });
 
-app.post('/api/gemini-score-prototype', async (req: Request, res: Response) => {
+app.post('/api/gemini-score-prototype', async (req: express.Request, res: express.Response) => {
     console.log('Server: Received /api/gemini-score-prototype request with body:', req.body);
     const { selectedIdea, poster, uploads } = req.body;
 
@@ -405,7 +405,7 @@ app.post('/api/gemini-score-prototype', async (req: Request, res: Response) => {
     }
 });
 
-app.post('/api/gemini-persona', async (req: Request, res: Response) => {
+app.post('/api/gemini-persona', async (req: express.Request, res: express.Response) => {
     console.log('Server: Received /api/gemini-persona request with body:', req.body);
     const { persona, prototypeData, problemTitle } = req.body; 
 
@@ -449,7 +449,7 @@ Reply in 4-7 simple B1 sentences: what you like, one worry, one idea.`;
     }
 });
 
-app.post('/api/complete-quest', async (req: Request, res: Response) => {
+app.post('/api/complete-quest', async (req: express.Request, res: express.Response) => {
     console.log('Server: Received /api/complete-quest request with body:', req.body);
     const { userId, problemId, totalScore, solution } = req.body;
 
@@ -471,7 +471,7 @@ app.post('/api/complete-quest', async (req: Request, res: Response) => {
     res.json({ rank, reward, badge, message: 'Quest completed successfully!' });
 });
 
-app.get('/api/leaderboard', async (req: Request, res: Response) => {
+app.get('/api/leaderboard', async (req: express.Request, res: express.Response) => {
     const { problemId } = req.query;
     if (!problemId) {
         return res.status(400).json({ error: 'Missing problemId query parameter.' });
@@ -491,7 +491,7 @@ app.get('/api/leaderboard', async (req: Request, res: Response) => {
     res.json(leaderboardEntries);
 });
 
-app.get('/api/rpm-avatar-proxy', async (req: Request, res: Response) => {
+app.get('/api/rpm-avatar-proxy', async (req: express.Request, res: express.Response) => {
     const { url } = req.query;
     if (!url) {
         return res.status(400).json({ error: 'Missing URL query parameter.' });
@@ -509,7 +509,7 @@ app.get('/api/rpm-avatar-proxy', async (req: Request, res: Response) => {
     }
 });
 
-app.post('/api/update-avatar', async (req: Request, res: Response) => {
+app.post('/api/update-avatar', async (req: express.Request, res: express.Response) => {
     const { userId, avatarUrl } = req.body;
     if (!userId || !avatarUrl) {
         return res.status(400).json({ error: 'Missing userId or avatarUrl in request body.' });
@@ -525,7 +525,7 @@ app.post('/api/update-avatar', async (req: Request, res: Response) => {
 });
 
 // The "catchall" handler
-app.get('/*', (req: Request, res: Response) => {
+app.get('/*', (req: express.Request, res: express.Response) => {
   res.sendFile(path.join(__dirname, '..', 'dist', 'index.html'));
 });
 
