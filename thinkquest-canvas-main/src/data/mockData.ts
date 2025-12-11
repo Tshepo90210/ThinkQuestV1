@@ -13,7 +13,7 @@ export const problems: Problem[] = [
     ],
     category: "Current problems",
     difficulty: "Moderate",
-    image: "/src/assets/loadshedding.png"
+    image: "/assets/loadshedding.png"
   },
   {
     id: 2,
@@ -26,7 +26,7 @@ export const problems: Problem[] = [
     ],
     category: "Current problems",
     difficulty: "Moderate",
-    image: "/src/assets/no water.png"
+    image: "/assets/no water.png"
   },
   {
     id: 3,
@@ -39,7 +39,7 @@ export const problems: Problem[] = [
     ],
     category: "Current problems",
     difficulty: "Moderate",
-    image: "/src/assets/walking stuudent.png"
+    image: "/assets/walking stuudent.png"
   },
   {
     id: 4,
@@ -52,7 +52,7 @@ export const problems: Problem[] = [
     ],
     category: "Current problems",
     difficulty: "Moderate",
-    image: "/src/assets/language barrier.png"
+    image: "/assets/language barrier.png"
   },
   {
     id: 5,
@@ -65,7 +65,7 @@ export const problems: Problem[] = [
     ],
     category: "Current problems",
     difficulty: "Moderate",
-    image: "/src/assets/practical skills.png"
+    image: "/assets/practical skills.png"
   },
   {
     id: 6,
@@ -78,7 +78,7 @@ export const problems: Problem[] = [
     ],
     category: "Current problems",
     difficulty: "Moderate",
-    image: "/src/assets/bully.png"
+    image: "/assets/bully.png"
   },
   {
     id: 7,
@@ -91,7 +91,7 @@ export const problems: Problem[] = [
     ],
     category: "Current problems",
     difficulty: "Moderate",
-    image: "/src/assets/mental health.png"
+    image: "/assets/mental health.png"
   },
   {
     id: 8,
@@ -104,7 +104,7 @@ export const problems: Problem[] = [
     ],
     category: "Current problems",
     difficulty: "Moderate",
-    image: "/src/assets/disabled kids.png"
+    image: "/assets/disabled kids.png"
   }
 ];
 
@@ -464,7 +464,7 @@ export const personasByProblem: { [problemId: number]: Persona[] } = {
       id: 20,
       name: "Neo",
       role: "Tech Dreamer",
-      avatar: "student-tech",
+      avatar: "/assets/stressed male.png",
       backstory: "Neo, a 15-year-old Grade 10 non-binary learner from Durban, loves app development but lacks coding classes amid high unemployment, with 2025's digital divide leaving them behind. From a diverse family, they volunteer at community centers but need school support to turn passion into a job.",
       keyTraits: {
         age: 15,
@@ -538,7 +538,7 @@ export const personasByProblem: { [problemId: number]: Persona[] } = {
       id: 24,
       name: "Lebo",
       role: "Reformed Bully",
-      avatar: "student-reformed",
+      avatar: "/assets/stressed female.png",
       backstory: "Lebo, a 17-year-old Grade 12 non-binary learner from Pretoria, bullied to fit in but now regrets it after counseling, amid 2025's 40% primary school bullying rates. They advocate for change, drawing from economic stress at home.",
       keyTraits: {
         age: 17,
@@ -686,7 +686,7 @@ export const personasByProblem: { [problemId: number]: Persona[] } = {
       id: 32,
       name: "Keabetswe",
       role: "Visually Impaired Student",
-      avatar: "student-visually",
+      avatar: "/assets/stressed female.png",
       backstory: "Keabetswe, a 14-year-old Grade 9 non-binary learner from Gauteng, uses braille but finds books scarce in 2025, with digital tools inaccessible due to load shedding. Social stigma leads to bullying, but they advocate for change.",
       keyTraits: {
         age: 14,
