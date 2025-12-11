@@ -483,7 +483,7 @@ export const personasByProblem: { [problemId: number]: Persona[] } = {
     {
       id: 21,
       name: "Aisha",
-      role: "Targeted Learner",
+      role: "Targeted Learmer",
       avatar: "/assets/stressed female.png",
       backstory: "Aisha, a 15-year-old Grade 10 Muslim girl from Cape Flats, endures cyberbullying on WhatsApp groups in 2025, with 40% of SA learners affected, often tied to religious dress or accents. This leads to isolation and anxiety, missing school days, as her family navigates economic hardships.",
       keyTraits: {
