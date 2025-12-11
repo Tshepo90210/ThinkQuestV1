@@ -1,6 +1,7 @@
 import express from 'express';
 import dotenv from 'dotenv';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import type { Part } from '@google/generative-ai';
 import cors from 'cors';
 import axios from 'axios';
 import multer from 'multer';
