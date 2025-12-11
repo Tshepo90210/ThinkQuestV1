@@ -67,8 +67,8 @@ app.post('/api/gemini-chat', async (req: express.Request, res: express.Response)
   }
 
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
-    console.log('Using Gemini model for chat:', 'gemini-2.5-flash');
+    const model = genAI.getGenerativeModel({ model: 'gemini-3' });
+    console.log('Using Gemini model for chat:', 'gemini-3');
 
     const prompt = `Respond as ${name} (${role}) with backstory: ${backstory} to this question: ${question}. Please ensure your response is in B1 (Intermediate) level English: simple, clear, using basic grammar and vocabulary, avoiding idioms, and limited to 2-3 sentences. keep it concise`;
     const result = await model.generateContentStream(prompt);
@@ -102,8 +102,8 @@ app.post('/api/gemini-score', upload.array('files', 5), async (req: express.Requ
   }
 
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
-    console.log('Using Gemini model for scoring:', 'gemini-2.5-flash');
+    const model = genAI.getGenerativeModel({ model: 'gemini-3' });
+    console.log('Using Gemini model for scoring:', 'gemini-3');
 
     let prompt = '';
 
@@ -301,8 +301,8 @@ app.post('/api/gemini-score-prototype', async (req: express.Request, res: expres
     }
 
     try {
-        const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
-        console.log('Using Gemini model for prototype scoring:', 'gemini-2.5-flash');
+        const model = genAI.getGenerativeModel({ model: 'gemini-3' });
+        console.log('Using Gemini model for prototype scoring:', 'gemini-3');
 
         const modelParts: Part[] = [
             { text: `You are a Design Thinking expert. Analyze this Concept Poster (text provided) and the attached wireframes/prototype visuals.
@@ -415,8 +415,8 @@ app.post('/api/gemini-persona', async (req: express.Request, res: express.Respon
     }
 
     try {
-        const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' }); 
-        console.log('Using Gemini model for persona feedback:', 'gemini-2.5-flash');
+        const model = genAI.getGenerativeModel({ model: 'gemini-3' }); 
+        console.log('Using Gemini model for persona feedback:', 'gemini-3');
 
         const { posterNotes, timelineNotes } = prototypeData;
 
