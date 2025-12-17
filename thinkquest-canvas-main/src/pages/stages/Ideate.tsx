@@ -24,9 +24,7 @@ interface HowMightWe {
 
 const Ideate: React.FC = () => {
   const {
-    selectedProblem: currentProblem,
-    hmwList: storedHmwList,
-    selectedProblem: storedSelectedProblem,
+    selectedProblem, // Directly use selectedProblem from the store
     reflection: storedReflection,
     empathyMapInput: storedEmpathyMapInput,
     insights: storedInsights,
