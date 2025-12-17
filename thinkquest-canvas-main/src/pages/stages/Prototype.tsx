@@ -24,7 +24,6 @@ interface Idea {
 
 const Prototype: React.FC = () => {
   const {
-    selectedProblem,
     selectedProblem: storedSelectedProblem,
     selectedTop3Ideas: storedSelectedTop3Ideas,
     rationaleMap: storedRationaleMap,
