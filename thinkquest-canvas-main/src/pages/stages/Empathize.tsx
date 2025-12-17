@@ -652,7 +652,7 @@ const Empathize = () => {
       console.log('Empathize Stage: formattedInsights being saved:', formattedInsights);
       console.log('Empathize Stage: themes being saved:', themes);
 
-      const response = await fetch('http://localhost:3001/api/gemini-score', {
+      const response = await fetch('/api/openai-score', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

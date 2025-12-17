@@ -102,14 +102,14 @@ const Define = () => {
       setIsSubmitting(true);
   
       try {
-        console.log('Define.tsx: Sending to /api/gemini-score with body:');
+        console.log('Define.tsx: Sending to /api/openai-score with body:');
         console.log('  stage:', 'define');
         console.log('  hmwList:', addedHmwQuestions);
         console.log('  selectedProblem:', selectedProblem);
         console.log('  themes:', empathyThemes);
         console.log('  reflection:', reflection);
 
-        const response = await fetch(`/api/gemini-score`, {
+        const response = await fetch(`/api/openai-score`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

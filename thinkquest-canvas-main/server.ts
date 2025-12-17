@@ -1,7 +1,7 @@
 import express from 'express';
 import dotenv from 'dotenv';
-import { GoogleGenerativeAI } from '@google/generative-ai';
-import type { Part } from '@google/generative-ai';
+import OpenAI from 'openai';
+import type { ChatCompletionMessageParam, ChatCompletionContentPart } from 'openai/resources/chat/completions';
 import cors from 'cors';
 import axios from 'axios';
 import multer from 'multer';
@@ -26,13 +26,13 @@ app.use(express.urlencoded({ extended: true })); // For parsing application/x-ww
 // Serve static files from the React app build directory
 app.use(express.static(path.join(__dirname, '..', 'dist')));
 
-const geminiApiKey = process.env.GEMINI_API_KEY;
-if (!geminiApiKey) {
-  console.error('GEMINI_API_KEY is not set in the .env file.');
+const openaiApiKey = process.env.OPENAI_API_KEY;
+if (!openaiApiKey) {
+  console.error('OPENAI_API_KEY is not set in the .env file.');
   process.exit(1);
 }
 
-const genAI = new GoogleGenerativeAI(geminiApiKey);
+const openai = new OpenAI({ apiKey: openaiApiKey });
 
 // Initialize PocketBase for the server
 const pocketbaseUrl = process.env.VITE_POCKETBASE_URL;
@@ -59,7 +59,7 @@ interface Quest {
 // In-memory store for completed quests
 const completedQuests: Quest[] = [];
 
-app.post('/api/gemini-chat', async (req: express.Request, res: express.Response) => {
+app.post('/api/openai-chat', async (req: express.Request, res: express.Response) => {
   const { name, role, backstory, question } = req.body;
 
   if (!name || !role || !backstory || !question) {
@@ -67,19 +67,25 @@ app.post('/api/gemini-chat', async (req: express.Request, res: express.Response)
   }
 
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.0' });
-    console.log('Using Gemini model for chat:', 'gemini-1.0');
+    const messages: ChatCompletionMessageParam[] = [
+      { role: 'system', content: `You are ${name} (${role}) with backstory: ${backstory}. Your responses should be in B1 (Intermediate) level English: simple, clear, using basic grammar and vocabulary, avoiding idioms, and limited to 2-3 sentences. Keep it concise.` },
+      { role: 'user', content: question }
+    ];
 
-    const prompt = `Respond as ${name} (${role}) with backstory: ${backstory} to this question: ${question}. Please ensure your response is in B1 (Intermediate) level English: simple, clear, using basic grammar and vocabulary, avoiding idioms, and limited to 2-3 sentences. keep it concise`;
-    const result = await model.generateContentStream(prompt);
+    const stream = await openai.chat.completions.create({
+      model: 'gpt-3.5-turbo', // Or gpt-4 if preferred
+      messages: messages,
+      stream: true,
+    });
 
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
 
-    for await (const chunk of result.stream) {
-      const chunkText = chunk.text();
-      res.write(chunkText);
+    for await (const chunk of stream) {
+      if (chunk.choices[0]?.delta?.content) {
+        res.write(chunk.choices[0].delta.content);
+      }
     }
     res.end();
 
@@ -90,7 +96,7 @@ app.post('/api/gemini-chat', async (req: express.Request, res: express.Response)
   }
 });
 
-app.post('/api/gemini-score', upload.array('files', 5), async (req: express.Request, res: express.Response) => {
+app.post('/api/openai-score', upload.array('files', 5), async (req: express.Request, res: express.Response) => {
   console.log('Server: Received /api/gemini-score request with body:', req.body);
   console.log('Server: Received files:', req.files);
 
@@ -102,8 +108,8 @@ app.post('/api/gemini-score', upload.array('files', 5), async (req: express.Requ
   }
 
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.0' });
-    console.log('Using Gemini model for scoring:', 'gemini-1.0');
+
+    console.log('Using Gemini model for scoring:', 'gemini-1.5-flash');
 
     let prompt = '';
 
@@ -114,7 +120,7 @@ app.post('/api/gemini-score', upload.array('files', 5), async (req: express.Requ
 
       prompt = `Analyze the following Concept Poster submission for the Prototype stage in design thinking...`; // Truncated for brevity
 
-      const modelParts: Part[] = [{ text: prompt }];
+      const content: ChatCompletionContentPart[] = [{ type: 'text', text: prompt }];
 
       for (const file of files) {
         const fileType = await fileTypeFromBuffer(file.buffer);
@@ -124,36 +130,62 @@ app.post('/api/gemini-score', upload.array('files', 5), async (req: express.Requ
         }
         const mimeType = fileType.mime;
         const base64Data = file.buffer.toString('base64');
-        modelParts.push({
-            inlineData: {
-                data: base64Data,
-                mimeType: mimeType,
+        content.push({
+            type: 'image_url',
+            image_url: {
+                url: `data:${mimeType};base64,${base64Data}`,
             },
         });
-      }
-
-      const result = await model.generateContent({
-        contents: [{ role: 'user', parts: modelParts }]
+      } // ADDED THIS MISSING BRACE
+      const chatCompletion = await openai.chat.completions.create({
+        model: 'gpt-4o', // or gpt-4-vision-preview if you prefer
+        messages: [{ role: 'user', content: content }],
       });
-      const response = await result.response;
-      const text = response.text();
+      const text: string | null = chatCompletion.choices[0].message?.content ?? null;
 
-      let parsedResponse;
-      try {
-        let jsonString = text;
-        const jsonMatch = text.match(/```json\n([\s\S]*?)\n```/);
-        if (jsonMatch && jsonMatch[1]) {
-          jsonString = jsonMatch[1];
-        } else {
-          const firstBrace = text.indexOf('{');
-          const lastBrace = text.lastIndexOf('}');
-          if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
-            jsonString = text.substring(firstBrace, lastBrace + 1);
-          }
-        }
-        parsedResponse = JSON.parse(jsonString);
+              let parsedResponse;
+
+            try {
+
+              let jsonString: string;
+
+              if (text === null) {
+
+                  console.error('OpenAI response content is null. Cannot parse JSON.');
+
+                  return res.status(500).json({ error: 'AI response content is null. Please try again.', rawResponse: text });
+
+              }
+
+              jsonString = text; // Now jsonString is guaranteed to be a string
+
+      
+
+              const jsonMatch = jsonString.match(/```json\n([\s\S]*?)\n```/);
+
+              if (jsonMatch && jsonMatch[1]) {
+
+                jsonString = jsonMatch[1];
+
+              } else {
+
+                const firstBrace = jsonString.indexOf('{');
+
+                const lastBrace = jsonString.lastIndexOf('}');
+
+                if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+
+                  jsonString = jsonString.substring(firstBrace, lastBrace + 1);
+
+                }
+
+              }
+
+              parsedResponse = JSON.parse(jsonString);
+
+      
       } catch (parseError: unknown) {
-        console.error('Error parsing Gemini score response as JSON:', parseError);
+        console.error('Error parsing OpenAI score response as JSON:', parseError);
         return res.status(500).json({ error: 'AI response could not be parsed. Please try again.', rawResponse: text });
       }
 
@@ -183,25 +215,33 @@ app.post('/api/gemini-score', upload.array('files', 5), async (req: express.Requ
       const insightsString = insights.map((i: any) => `Persona: ${i.persona}, Activity: ${i.activity}, Because: ${i.because}, But: ${i.but}`).join('\n');
       const themesString = themes.join('\n');
       prompt = `Analyze the following user inputs for the Empathize stage...`; // Truncated
-      const result = await model.generateContent(prompt);
-      const response = await result.response;
-      const text = response.text();
-      let parsedResponse;
-      try {
-        let jsonString = text;
-        const jsonMatch = text.match(/```json\n([\s\S]*?)\n```/);
-        if (jsonMatch && jsonMatch[1]) {
-          jsonString = jsonMatch[1];
-        } else {
-            const firstBrace = text.indexOf('{');
-            const lastBrace = text.lastIndexOf('}');
-            if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
-                jsonString = text.substring(firstBrace, lastBrace + 1);
-            }
-        }
-        parsedResponse = JSON.parse(jsonString);
+      
+      const chatCompletion = await openai.chat.completions.create({
+        model: 'gpt-3.5-turbo',
+        messages: [{ role: 'user', content: prompt }],
+      });
+            const text: string | null = chatCompletion.choices[0].message?.content ?? null;
+            let parsedResponse;
+            try {
+              let jsonString: string;
+              if (text === null) {
+                  console.error('OpenAI response content is null. Cannot parse JSON.');
+                  return res.status(500).json({ error: 'AI response content is null. Please try again.', rawResponse: text });
+              }
+              jsonString = text; // Now jsonString is guaranteed to be a string
+              const jsonMatch = jsonString.match(/```json\n([\s\S]*?)\n```/);
+              if (jsonMatch && jsonMatch[1]) {
+                jsonString = jsonMatch[1];
+              } else {
+                  const firstBrace = jsonString.indexOf('{');
+                  const lastBrace = jsonString.lastIndexOf('}');
+                  if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+                      jsonString = jsonString.substring(firstBrace, lastBrace + 1);
+                  }
+              }
+              parsedResponse = JSON.parse(jsonString);
     } catch (parseError: unknown) {
-        console.error('Error parsing Gemini score response as JSON:', parseError);
+        console.error('Error parsing OpenAI score response as JSON:', parseError);
         return res.status(500).json({ error: 'AI response could not be parsed. Please try again.', rawResponse: text });
     }
     if (typeof parsedResponse.score !== 'number' || typeof parsedResponse.strengths !== 'string' || typeof parsedResponse.improvements !== 'string' || !Array.isArray(parsedResponse.suggestions) || typeof parsedResponse.overallComment !== 'string') {
@@ -220,25 +260,32 @@ app.post('/api/gemini-score', upload.array('files', 5), async (req: express.Requ
         return `- Idea: "${idea}"\n  Rationale: "${rationale}"`;
       }).join('\n');
       prompt = `Analyze the following Ideate stage submission...`; // Truncated
-      const result = await model.generateContent(prompt);
-      const response = await result.response;
-      const text = response.text();
-      let parsedResponse;
-      try {
-        let jsonString = text;
-        const jsonMatch = text.match(/```json\n([\s\S]*?)\n```/);
-        if (jsonMatch && jsonMatch[1]) {
-          jsonString = jsonMatch[1];
-        } else {
-            const firstBrace = text.indexOf('{');
-            const lastBrace = text.lastIndexOf('}');
-            if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
-                jsonString = text.substring(firstBrace, lastBrace + 1);
-            }
-        }
-        parsedResponse = JSON.parse(jsonString);
+      const chatCompletion = await openai.chat.completions.create({
+        model: 'gpt-3.5-turbo',
+        messages: [{ role: 'user', content: prompt }],
+      });
+              const text: string | null = chatCompletion.choices[0].message?.content ?? null;
+              let parsedResponse;
+              try {
+                  let jsonString: string;
+                  if (text === null) {
+                      console.error('OpenAI response content is null. Cannot parse JSON.');
+                      return res.status(500).json({ error: 'AI response content is null. Please try again.', rawResponse: text });
+                  }
+                  jsonString = text; // Now jsonString is guaranteed to be a string
+                  const jsonMatch = jsonString.match(/```json\n([\s\S]*?)\n```/);
+                  if (jsonMatch && jsonMatch[1]) {
+                    jsonString = jsonMatch[1];
+                  } else {
+                      const firstBrace = jsonString.indexOf('{');
+                      const lastBrace = jsonString.lastIndexOf('}');
+                      if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+                          jsonString = jsonString.substring(firstBrace, lastBrace + 1);
+                      }
+                  }
+                  parsedResponse = JSON.parse(jsonString);
     } catch (parseError: unknown) {
-        console.error('Error parsing Gemini score response as JSON:', parseError);
+        console.error('Error parsing OpenAI score response as JSON:', parseError);
         return res.status(500).json({ error: 'AI response could not be parsed. Please try again.', rawResponse: text });
     }
     if (typeof parsedResponse.score !== 'number' || typeof parsedResponse.strengths !== 'string' || typeof parsedResponse.improvements !== 'string' || !Array.isArray(parsedResponse.suggestions) || typeof parsedResponse.overallComment !== 'string') {
@@ -255,25 +302,32 @@ app.post('/api/gemini-score', upload.array('files', 5), async (req: express.Requ
         const hmwListString = JSON.parse(hmwList).map((hmw: any) => `- ${hmw}`).join('\n');
         const themesString = JSON.parse(themes).map((theme: any) => `- ${theme.title}: ${theme.description}`).join('\n');
         prompt = `Analyze the following Define stage submission...`; // Truncated
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
-        const text = response.text();
-        let parsedResponse;
-        try {
-            let jsonString = text;
-            const jsonMatch = text.match(/```json\n([\s\S]*?)\n```/);
-            if (jsonMatch && jsonMatch[1]) {
-                jsonString = jsonMatch[1];
-            } else {
-                const firstBrace = text.indexOf('{');
-                const lastBrace = text.lastIndexOf('}');
-                if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
-                    jsonString = text.substring(firstBrace, lastBrace + 1);
-                }
-            }
-            parsedResponse = JSON.parse(jsonString);
+        const chatCompletion = await openai.chat.completions.create({
+            model: 'gpt-3.5-turbo',
+            messages: [{ role: 'user', content: prompt }],
+        });
+              const text: string | null = chatCompletion.choices[0].message?.content ?? null;
+                      let parsedResponse;
+                      try {
+                          let jsonString: string;
+                          if (text === null) {
+                              console.error('OpenAI response content is null. Cannot parse JSON.');
+                              return res.status(500).json({ error: 'AI response content is null. Please try again.', rawResponse: text });
+                          }
+                          jsonString = text; // Now jsonString is guaranteed to be a string
+                          const jsonMatch = jsonString.match(/```json\n([\s\S]*?)\n```/);
+                          if (jsonMatch && jsonMatch[1]) {
+                              jsonString = jsonMatch[1];
+                          } else {
+                              const firstBrace = jsonString.indexOf('{');
+                              const lastBrace = jsonString.lastIndexOf('}');
+                              if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+                                  jsonString = jsonString.substring(firstBrace, lastBrace + 1);
+                              }
+                          }
+                          parsedResponse = JSON.parse(jsonString);
         } catch (parseError: unknown) {
-            console.error('Error parsing Gemini score response as JSON:', parseError);
+            console.error('Error parsing OpenAI score response as JSON:', parseError);
             return res.status(500).json({ error: 'AI response could not be parsed. Please try again.', rawResponse: text });
         }
         if (typeof parsedResponse.score !== 'number' || typeof parsedResponse.strengths !== 'string' || typeof parsedResponse.improvements !== 'string' || !Array.isArray(parsedResponse.suggestions) || typeof parsedResponse.overallComment !== 'string') {
@@ -286,14 +340,14 @@ app.post('/api/gemini-score', upload.array('files', 5), async (req: express.Requ
     }
   } catch (error: unknown) {
       const err = error as Error;
-      console.error('Error calling Gemini API for scoring:', err.message);
+      console.error('Error calling OpenAI API for scoring:', err.message);
       console.error('Error stack:', err.stack);
       res.status(500).json({ error: 'Failed to get score from AI...', details: err.message, score: 50, strengths: 'N/A', improvements: 'Failed to connect to AI service.', suggestions: ['Check your internet connection or try again later.'], overallComment: 'An error occurred.' });
   }
 });
 
-app.post('/api/gemini-score-prototype', async (req: express.Request, res: express.Response) => {
-    console.log('Server: Received /api/gemini-score-prototype request with body:', req.body);
+app.post('/api/openai-score-prototype', async (req: express.Request, res: express.Response) => {
+    console.log('Server: Received /api/openai-score-prototype request with body:', req.body);
     const { selectedIdea, poster, uploads } = req.body;
 
     if (!selectedIdea || !poster) {
@@ -301,11 +355,10 @@ app.post('/api/gemini-score-prototype', async (req: express.Request, res: expres
     }
 
     try {
-        const model = genAI.getGenerativeModel({ model: 'gemini-1.0' });
-        console.log('Using Gemini model for prototype scoring:', 'gemini-1.0');
+        console.log('Using OpenAI model for prototype scoring:', 'gpt-4o');
 
-        const modelParts: Part[] = [
-            { text: `You are a Design Thinking expert. Analyze this Concept Poster (text provided) and the attached wireframes/prototype visuals.
+        const content: ChatCompletionContentPart[] = [
+            { type: 'text', text: `You are a Design Thinking expert. Analyze this Concept Poster (text provided) and the attached wireframes/prototype visuals.
               The selected idea is: "${selectedIdea}"
               The concept poster content is:
               ${poster}
@@ -334,37 +387,41 @@ app.post('/api/gemini-score-prototype', async (req: express.Request, res: expres
             uploads.forEach((upload: { name: string; base64: string; type: string }) => {
                 const base64Content = upload.base64.split(',')[1];
                 if (base64Content) {
-                    modelParts.push({
-                        inlineData: {
-                            data: base64Content,
-                            mimeType: upload.type,
+                    content.push({
+                        type: 'image_url',
+                        image_url: {
+                            url: `data:${upload.type};base64,${base64Content}`,
                         },
                     });
                 }
             });
         }
 
-        const result = await model.generateContent({
-            contents: [{ role: 'user', parts: modelParts }]
+        const chatCompletion = await openai.chat.completions.create({
+            model: 'gpt-4o', // or gpt-4-vision-preview if you prefer
+            messages: [{ role: 'user', content: content }]
         });
-        const response = await result.response;
-        const text = response.text();
+        const text: string | null = chatCompletion.choices[0].message?.content ?? null;
 
-        let parsedResponse;
-        try {
-            let jsonString = text;
-            const jsonMatch = text.match(/```json\n([\s\S]*?)\n```/);
-            if (jsonMatch && jsonMatch[1]) {
-                jsonString = jsonMatch[1];
-            } else {
-                const firstBrace = text.indexOf('{');
-                const lastBrace = text.lastIndexOf('}');
-                if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
-                    jsonString = text.substring(firstBrace, lastBrace + 1);
-                }
-            }
-            parsedResponse = JSON.parse(jsonString);
-        } catch (parseError: unknown) {
+                    let parsedResponse;
+                    try {
+                        let jsonString: string;
+                        if (text === null) {
+                            console.error('OpenAI response content is null. Cannot parse JSON.');
+                            return res.status(500).json({ error: 'AI response content is null. Please try again.', rawResponse: text });
+                        }
+                        jsonString = text; // Now jsonString is guaranteed to be a string
+                        const jsonMatch = jsonString.match(/```json\n([\s\S]*?)\n```/);
+                        if (jsonMatch && jsonMatch[1]) {
+                            jsonString = jsonMatch[1];
+                        } else {
+                            const firstBrace = jsonString.indexOf('{');
+                            const lastBrace = jsonString.lastIndexOf('}');
+                            if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+                                jsonString = jsonString.substring(firstBrace, lastBrace + 1);
+                            }
+                        }
+                        parsedResponse = JSON.parse(jsonString);        } catch (parseError: unknown) {
             console.error('Error parsing Gemini prototype score response as JSON:', parseError);
             return res.status(500).json({ error: 'AI response could not be parsed. Please try again.', rawResponse: text });
         }
@@ -406,7 +463,7 @@ app.post('/api/gemini-score-prototype', async (req: express.Request, res: expres
     }
 });
 
-app.post('/api/gemini-persona', async (req: express.Request, res: express.Response) => {
+app.post('/api/openai-persona', async (req: express.Request, res: express.Response) => {
     console.log('Server: Received /api/gemini-persona request with body:', req.body);
     const { persona, prototypeData, problemTitle } = req.body; 
 
@@ -415,8 +472,7 @@ app.post('/api/gemini-persona', async (req: express.Request, res: express.Respon
     }
 
     try {
-        const model = genAI.getGenerativeModel({ model: 'gemini-1.0' }); 
-        console.log('Using Gemini model for persona feedback:', 'gemini-1.0');
+        console.log('Using OpenAI model for persona feedback:', 'gpt-3.5-turbo');
 
         const { posterNotes, timelineNotes } = prototypeData;
 
@@ -433,10 +489,16 @@ ${posterNotesString}
 ${timelineNotesString}
 Reply in 4-7 simple B1 sentences: what you like, one worry, one idea.`;
 
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
-        const text = response.text();
+        const chatCompletion = await openai.chat.completions.create({
+            model: 'gpt-3.5-turbo',
+            messages: [{ role: 'user', content: prompt }],
+        });
+        const text: string | null = chatCompletion.choices[0].message?.content ?? null;
 
+        if (text === null) {
+            console.error('OpenAI response content is null. Cannot provide feedback.');
+            return res.status(500).json({ error: 'AI response content is null. Please try again.' });
+        }
         res.json({ feedback: text });
 
     } catch (error: unknown) {
