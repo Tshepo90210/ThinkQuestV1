@@ -1,504 +1,288 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
-import Confetti from 'react-confetti';
-import { Header } from '@/components/Header';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Progress } from '@/components/ui/progress';
-import { useThinkQuestStore } from '@/store/useThinkQuestStore';
-import { generateAIResponse, PROBLEM_IMAGES, problems } from '@/data/mockData';
-import { ArrowLeft, HelpCircle, Sparkles, Leaf } from 'lucide-react'; // Import Leaf icon
-import { toast } from 'sonner';
-import { cn } from '@/lib/utils';
-import StageHintModal from '@/components/StageHintModal'; // Import StageHintModal
+import React, { useState, useEffect } from 'react';
+import { useThinkQuestStore } from '../../store/useThinkQuestStore';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { Loader2 } from 'lucide-react';
+import { ProblemDetailsOverlay } from '../../components/ProblemDetailsOverlay';
+import { Button } from '../../components/ui/button';
+import { Textarea } from '../../components/ui/textarea';
+import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
+import { Label } from '../../components/ui/label';
+import { useToast } from '../../hooks/use-toast';
+import { Separator } from '../../components/ui/separator';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '../../components/ui/accordion';
 
-const STOP_WORDS = [
-  "a", "an", "the", "with", "is", "are", "to", "of", "in", "on", "at", "for", "from", "by", "about", "as", "into", "like", "through", "after", "before", "over", "under", "again", "further", "then", "once", "here", "there", "when", "where", "why", "how", "all", "any", "both", "each", "few", "more", "most", "other", "some", "such", "no", "nor", "not", "only", "own", "same", "so", "than", "too", "very", "s", "t", "can", "will", "just", "don", "should", "now",
-];
+// Define types for HMW statements
+interface HowMightWe {
+  id: string;
+  statement: string;
+}
 
-const Define = () => {
+const Define: React.FC = () => {
+  const {
+    currentProblem,
+    addHmwList,
+    addSelectedProblem,
+    addThemes,
+    addReflection,
+    hmwList: storedHmwList,
+    selectedProblem: storedSelectedProblem,
+    themes: storedThemes,
+    reflection: storedReflection,
+  } = useThinkQuestStore();
   const navigate = useNavigate();
-  const { selectedProblem, updateStageData, unlockStage, addTokens, addStars, stageData, setHmwQuestions } = useThinkQuestStore();
-  const empathyThemes = stageData.empathy.empathyThemes || []; // Access from stageData
-  const [hmwStatement, setHmwStatement] = useState(stageData.define.hmwStatement || '');
-  const [reflection, setReflection] = useState(stageData.define.reflection || '');
-  const [showConfetti, setShowConfetti] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [analysisResults, setAnalysisResults] = useState({
-    score: 0,
-    strengths: '',
-    improvements: '',
-    suggestions: [],
-    overallComment: '',
-    errorMessage: '',
-  });
-  const [showAnalysisDialog, setShowAnalysisDialog] = useState(false);
-  const [isHintModalOpen, setIsHintModalOpen] = useState(false); // New state for hint modal
-  const [highlightedCardId, setHighlightedCardId] = useState<string | null>(null);
-  const [selectedInsight, setSelectedInsight] = useState<any | null>(null); // Stores the full insight object
-  const [selectedVerb, setSelectedVerb] = useState('');
-  const [typedPersona, setTypedPersona] = useState('');
-  const [typedOutcome, setTypedOutcome] = useState('');
-  const [hmwQuestion, setHmwQuestion] = useState('');
-  const [addedHmwQuestions, setAddedHmwQuestions] = useState<string[]>(stageData.define.addedHmwQuestions || []);
-  const [selectedTheme, setSelectedTheme] = useState<any | null>(null);
-  const [showThemeDialog, setShowThemeDialog] = useState(false);
+  const location = useLocation();
+  const { toast } = useToast();
 
-  if (!selectedProblem) {
-    navigate('/map');
-    return null;
-  }
-
-  const problemImage = PROBLEM_IMAGES[selectedProblem.id];
-
-  // Calculate progress based on added HMW questions
-  const progress = (addedHmwQuestions.length > 0 ? 1 : 0) * 100;
+  const [hmwList, setHmwList] = useState<HowMightWe[]>(storedHmwList || []);
+  const [newHmw, setNewHmw] = useState('');
+  const [selectedProblem, setSelectedProblem] = useState(storedSelectedProblem || '');
+  const [themes, setThemes] = useState(storedThemes || []);
+  const [reflection, setReflection] = useState(storedReflection || '');
+  const [isLoading, setIsLoading] = useState(false);
+  const [problemDetailsOpen, setProblemDetailsOpen] = useState(false);
 
   useEffect(() => {
-    const currentPersona = typedPersona || selectedInsight?.persona || 'user';
-    const currentOutcome = typedOutcome || selectedInsight?.because || '';
-
-    if (currentPersona && selectedVerb && currentOutcome) {
-      setHmwQuestion(`How might we help ${currentPersona} ${selectedVerb} so that ${currentOutcome}?`);
-    } else if (currentPersona && selectedVerb) {
-      setHmwQuestion(`How might we help ${currentPersona} ${selectedVerb} so that [outcome]?`);
-    } else if (currentPersona && currentOutcome) {
-      setHmwQuestion(`How might we help ${currentPersona} [verb] so that ${currentOutcome}?`);
-    } else if (selectedVerb && currentOutcome) {
-      setHmwQuestion(`How might we help [persona] ${selectedVerb} so that ${currentOutcome}?`);
-    } else if (currentPersona) {
-      setHmwQuestion(`How might we help ${currentPersona} [verb] so that [outcome]?`);
-    } else if (selectedVerb) {
-      setHmwQuestion(`How might we help [persona] ${selectedVerb} so that [outcome]?`);
-    } else if (currentOutcome) {
-      setHmwQuestion(`How might we help [persona] [verb] so that ${currentOutcome}?`);
-    } else {
-      setHmwQuestion('');
+    if (!currentProblem) {
+      toast({
+        title: 'No Problem Selected',
+        description: 'Please select a problem from the map to start defining.',
+        variant: 'destructive',
+      });
+      navigate('/map');
     }
-  }, [selectedInsight, selectedVerb, typedPersona, typedOutcome]);
+  }, [currentProblem, navigate, toast]);
 
-  const handleRefine = () => {
-    // Refine logic for the current hmwQuestion
-    if (!hmwQuestion) {
-      toast.error('Generate an HMW question first!');
+  if (!currentProblem) {
+    return null; // Or a loading spinner, as the useEffect will redirect
+  }
+
+  const addHmw = () => {
+    if (newHmw.trim()) {
+      setHmwList([...hmwList, { id: Date.now().toString(), statement: newHmw.trim() }]);
+      setNewHmw('');
+    }
+  };
+
+  const removeHmw = (id: string) => {
+    setHmwList(hmwList.filter((hmw) => hmw.id !== id));
+  };
+
+  const handleAnalyze = async () => {
+    if (hmwList.length === 0 || !selectedProblem || themes.length === 0 || !reflection) {
+      toast({
+        title: 'Missing Information',
+        description: 'Please complete all sections before analyzing.',
+        variant: 'destructive',
+      });
       return;
     }
-    const result = generateAIResponse('refine', { hmw: hmwQuestion }) as { suggestion: string; improvements: string[] };
-    toast.success('AI Suggestions', {
-      description: result.suggestion,
-    });
-  };
 
-      const handleSubmit = async () => {
-      if (addedHmwQuestions.length === 0) {
-        toast.error('Add at least one HMW question first!');
-        return;
-      }
-  
-      setIsSubmitting(true);
-  
-      try {
-        console.log('Define.tsx: Sending to /api/gemini-score with body:');
-        console.log('  stage:', 'define');
-        console.log('  hmwList:', addedHmwQuestions);
-        console.log('  selectedProblem:', selectedProblem);
-        console.log('  themes:', empathyThemes);
-        console.log('  reflection:', reflection);
-
-        const response = await fetch(`/api/gemini-score`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            stage: 'define',
-            hmwList: addedHmwQuestions,
-            selectedProblem: selectedProblem,
-            themes: empathyThemes,
-            reflection: reflection,
-          }),
-        });
-  
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || 'Failed to get AI score');
-        }
-  
-        const result = await response.json();
-        const score = result.score || 50;
-        const strengths = result.strengths || 'N/A';
-        const improvements = result.improvements || 'Could not parse detailed feedback.';
-        const suggestions = Array.isArray(result.suggestions) ? result.suggestions : ['Ensure your input is clear and concise.'];
-        const overallComment = result.overallComment || 'Please try again.';
-  
-      console.log('Define.tsx: Submitting with addedHmwQuestions:', addedHmwQuestions);
-
-      updateStageData('define', {
-        hmwStatement: addedHmwQuestions.join(' '), // Save combined HMW for stageData
-        addedHmwQuestions, // Save all added HMW questions
-        score,
-        reflection,
+    setIsLoading(true);
+    try {
+      console.log('Define.tsx: Sending to /api/gemini-score with body:');
+      const response = await fetch(`/api/gemini-score`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          stage: 'define',
+          hmwList: hmwList.map((hmw) => hmw.statement),
+          selectedProblem,
+          themes,
+          reflection,
+        }),
       });
-      console.log('Define.tsx: After updateStageData for define, addedHmwQuestions:', addedHmwQuestions);
 
-      // Carry HMW to Ideate stage regardless of score
-      setHmwQuestions(addedHmwQuestions);
-      console.log('Define.tsx: After setHmwQuestions for ideate, addedHmwQuestions:', addedHmwQuestions);
-
-        if (score >= 70) {
-          setShowConfetti(true);
-          unlockStage(2); // Unlock Ideate stage
-          addTokens(50);
-          addStars(1);
-          toast.success(`Stage Complete! Score: ${score}/100`);
-        }
-      } catch (error) {
-        console.error('Error analyzing HMW questions with Gemini API:', error);
-        const errorMessage = (error as Error).message || 'Failed to analyze HMW questions.';
-        setIsSubmitting(false);
-        setAnalysisResults({
-          score: 50,
-          strengths: 'N/A',
-          improvements: 'Could not parse detailed feedback.',
-          suggestions: ['Check your internet connection or try again later.'],
-          overallComment: 'An error occurred.',
-          errorMessage: errorMessage,
-        });
-        setShowAnalysisDialog(true);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to get score from AI...');
       }
-    };
-  const handleCardClick = (item: any) => {
-    setSelectedInsight(item);
-    setHighlightedCardId(item.id);
-    setSelectedVerb(''); // Reset verb when a new insight is selected
-    setTypedPersona(item.persona || ''); // Pre-fill typedPersona
-    setTypedOutcome(item.because || ''); // Pre-fill typedOutcome
-  };
 
-  const handleAddHmw = () => {
-    if (hmwQuestion.trim()) {
-      setAddedHmwQuestions(prev => [...prev, hmwQuestion]);
-      setHmwQuestion(''); // Clear current HMW question
-      setSelectedInsight(null); // Clear selected insight
-      setHighlightedCardId(null); // Clear highlighted card
-      setSelectedVerb(''); // Clear selected verb
-      setTypedPersona(''); // Clear typedPersona
-      setTypedOutcome(''); // Clear typedOutcome
-      toast.success('HMW question added!');
-    } else {
-      toast.error('Please generate an HMW question first.');
+      const result = await response.json();
+      console.log('Define stage AI score result:', result);
+
+      addHmwList(hmwList);
+      addSelectedProblem(selectedProblem);
+      addThemes(themes);
+      addReflection(reflection);
+
+      navigate('/stages/ideate', { state: { scoreResult: result } });
+    } catch (error) {
+      console.error('Error analyzing define stage with Gemini API:', error);
+      toast({
+        title: 'Analysis Failed',
+        description: (error as Error).message || 'Failed to analyze define stage with AI.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const allInsights = [
-    ...(stageData.empathy.empathyInsights ?? []).map((insight, index) => ({
-      id: `insight-${insight.id || index}`,
-      title: insight.persona + ' ' + insight.activity,
-      text: `${insight.persona} ${insight.activity} because ${insight.because} but ${insight.but}`,
-      persona: insight.persona,
-      activity: insight.activity,
-      because: insight.because,
-      but: insight.but,
-    })),
-  ];
-
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
+    <div className="flex flex-col min-h-screen bg-gradient-to-br from-green-100 to-teal-200 dark:from-gray-800 dark:to-gray-950 text-gray-800 dark:text-gray-200 p-4 sm:p-6 lg:p-8">
+      <div className="max-w-7xl mx-auto w-full">
+        <div className="flex justify-between items-center mb-6">
+          <Button onClick={() => navigate('/stages/empathize')} variant="outline" className="flex items-center">
+            ← Back to Empathize
+          </Button>
+          <h1 className="text-3xl sm:text-4xl font-extrabold text-teal-800 dark:text-teal-300 text-center">
+            Define Stage
+          </h1>
+          <Button onClick={() => setProblemDetailsOpen(true)} variant="outline">
+            Problem Details
+          </Button>
+        </div>
 
-      {showConfetti && <Confetti />}
+        <ProblemDetailsOverlay
+          isOpen={problemDetailsOpen}
+          onClose={() => setProblemDetailsOpen(false)}
+          problem={currentProblem}
+        />
 
-      <div className="container max-w-6xl mx-auto px-4 py-8">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="space-y-8"
-        >
-          {/* Header */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Button variant="outline" size="icon" onClick={() => navigate('/map')}>
-                <ArrowLeft className="h-4 w-4" />
-              </Button>
-              <div>
-                <h1 className="text-3xl font-bold">Stage 2: Define</h1>
-                <p className="text-muted-foreground">Define Mountain</p>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* How Might We Section */}
+          <Card className="bg-white dark:bg-gray-800 shadow-lg rounded-xl">
+            <CardHeader>
+              <CardTitle className="text-xl font-bold text-teal-700 dark:text-teal-400">
+                How Might We Statements
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex space-x-2 mb-4">
+                <Textarea
+                  value={newHmw}
+                  onChange={(e) => setNewHmw(e.target.value)}
+                  placeholder="How might we make learning accessible during power outages?"
+                  className="flex-grow p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                />
+                <Button onClick={addHmw}>Add HMW</Button>
               </div>
-            </div>
-            <motion.div
-              className="relative flex items-center justify-center cursor-pointer"
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-              onClick={() => setIsHintModalOpen(true)}
-            >
-              <div className="absolute w-8 h-8 rounded-full bg-green-500 opacity-70" />
-              <Leaf className="relative z-10 h-5 w-5 text-white" />
-            </motion.div>
-          </div>
-
-          {/* Progress */}
-          <div className="space-y-2">
-            <div className="flex justify-between text-sm">
-              <span>Build HMW Statement: {addedHmwQuestions.length > 0 ? 1 : 0}/1</span>
-              <span>{Math.round(progress)}%</span>
-            </div>
-            <Progress value={progress} className="h-2" />
-          </div>
-          
-          {/* Stage Hint Modal */}
-          <StageHintModal
-            isOpen={isHintModalOpen}
-            onClose={() => setIsHintModalOpen(false)}
-            title="Define – How to Complete"
-          >
-            <ul className="list-disc list-inside space-y-2">
-              <li>Review your Empathy insights on the left</li>
-              <li>Write a clear Problem Statement (POV): User + Need + Insight</li>
-              <li>Craft at least 3 strong How Might We (HMW) questions</li>
-              <li>They must be open, positive, and actionable</li>
-              <li>Select your favorite HMW as the main one</li>
-              <li>Reflect: 'How does this focus your thinking?'</li>
-              <li>Submit → AI checks framing quality (70+ unlocks Ideate)</li>
-            </ul>
-          </StageHintModal>
-
-          {/* Main Content Area */}
-          <div className="flex flex-col lg:flex-row gap-8">
-            {/* NEW: Far Left Column for Static Themes */}
-            <div className="lg:w-1/5 space-y-4">
-              <h2 className="text-2xl font-bold">Empathy Themes</h2>
-              {stageData.empathy.empathyThemes && stageData.empathy.empathyThemes.length > 0 ? (
-                <div className="space-y-3">
-                  {stageData.empathy.empathyThemes.map((theme, index) => (
-                    <div
-                      key={index}
-                      className="p-4 border rounded-lg bg-gray-50 dark:bg-gray-800 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                      onClick={() => {
-                        setSelectedTheme(theme);
-                        setShowThemeDialog(true);
-                      }}
-                    >
-                      <h3 className="font-semibold">{theme.title}</h3>
-                      <p className="text-sm text-muted-foreground">{theme.text}</p>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-muted-foreground">No themes yet. Complete the Empathize stage first.</p>
-              )}
-            </div>
-
-            {/* Left Panel: Empathy Insights (now middle panel) */}
-            <div className="lg:w-2/5 sticky top-0 h-screen overflow-y-auto pr-4 space-y-4">
-              <h2 className="text-2xl font-bold">Your Empathy Insights</h2>
-              {problemImage && (
-                <img src={problemImage} alt={selectedProblem.title} className="w-full h-48 object-cover rounded-lg" />
-              )}
-              <div className="space-y-3">
-                {allInsights.length > 0 ? (
-                  allInsights.map((item) => (
-                    <div
-                      key={item.id}
-                      className={cn(
-                        "p-4 border rounded-lg cursor-pointer transition-all duration-200",
-                        "hover:shadow-md",
-                        highlightedCardId === item.id ? "bg-green-100 border-green-500 shadow-lg" : "bg-card"
-                      )}
-                      onClick={() => handleCardClick(item)}
-                    >
-                      <h3 className="font-semibold">{item.title}</h3>
-                      <p className="text-sm text-muted-foreground line-clamp-2">{item.text}</p>
-                    </div>
-                  ))
+              <Separator className="my-6" />
+              <div className="space-y-2">
+                {hmwList.length === 0 ? (
+                  <p className="text-gray-600 dark:text-gray-400 text-center">No HMWs added yet.</p>
                 ) : (
-                  <p className="text-muted-foreground">No insights or themes yet. Complete the Empathize stage first.</p>
+                  <Accordion type="single" collapsible className="w-full">
+                    {hmwList.map((hmw, index) => (
+                      <AccordionItem key={hmw.id} value={`hmw-item-${index}`}>
+                        <AccordionTrigger>HMW {index + 1}</AccordionTrigger>
+                        <AccordionContent>
+                          <Card className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg shadow-sm">
+                            <p className="text-gray-900 dark:text-gray-100">{hmw.statement}</p>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => removeHmw(hmw.id)}
+                              className="mt-2"
+                            >
+                              Remove
+                            </Button>
+                          </Card>
+                        </AccordionContent>
+                      </AccordionItem>
+                    ))}
+                  </Accordion>
                 )}
               </div>
-            </div>
+            </CardContent>
+          </Card>
 
-            {/* Right Panel: HMW Builder */}
-            <div className="lg:w-2/5 space-y-6">
-              <h2 className="text-2xl font-bold">How Might We (HMW) Statement Builder</h2>
+          {/* Selected Problem */}
+          <Card className="bg-white dark:bg-gray-800 shadow-lg rounded-xl">
+            <CardHeader>
+              <CardTitle className="text-xl font-bold text-teal-700 dark:text-teal-400">
+                Selected Problem Statement
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Label htmlFor="selected-problem" className="block text-md font-medium mb-2">
+                Reframe the problem based on your insights
+              </Label>
+              <Textarea
+                id="selected-problem"
+                value={selectedProblem}
+                onChange={(e) => setSelectedProblem(e.target.value)}
+                rows={8}
+                placeholder="Our users (rural students) struggle with inconsistent access to electricity, leading to disrupted study times..."
+                className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-teal-500"
+              />
+            </CardContent>
+          </Card>
+        </div>
 
-              {/* Selected Empathy Insights */}
-              {selectedInsight && (
-                <div className="space-y-4">
-                  <h3 className="text-xl font-bold">Selected Empathy Insight</h3>
-                  <div className="bg-blue-100 dark:bg-blue-900 p-4 rounded-lg shadow-sm">
-                    <p className="text-sm text-blue-800 dark:text-blue-200">
-                      <span className="font-semibold">{selectedInsight.persona}</span> needs to <span className="font-semibold">{selectedInsight.activity}</span> because <span className="font-semibold">{selectedInsight.because}</span> but <span className="font-semibold">{selectedInsight.but}</span>.
-                    </p>
-                  </div>
-                </div>
-              )}
+        {/* Themes Section */}
+        <Card className="mt-8 bg-white dark:bg-gray-800 shadow-lg rounded-xl">
+          <CardHeader>
+            <CardTitle className="text-xl font-bold text-teal-700 dark:text-teal-400">
+              Key Themes from Empathize Stage
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Label htmlFor="themes" className="block text-md font-medium mb-2">
+              List the overarching themes you identified:
+            </Label>
+            <Textarea
+              id="themes"
+              value={themes.map((t: any) => t.title + ': ' + t.description).join('\n')}
+              onChange={(e) =>
+                setThemes(
+                  e.target.value
+                    .split('\n')
+                    .map((line) => {
+                      const [title, description] = line.split(': ');
+                      return { title, description };
+                    })
+                    .filter((t) => t.title && t.description),
+                )
+              }
+              rows={8}
+              placeholder="e.g., Digital Divide: Unequal access to technology and resources"
+              className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-teal-500"
+            />
+          </CardContent>
+        </Card>
 
-              {/* Step 1: Choose an important need */}
-              <div className="space-y-2">
-               <label className="text-sm font-large">Step 1: Create a Clear Problem Statement</label><br /><br />
-                <label className="text-sm font-medium">Type an important need (verb)</label>
-                <Input
-                  placeholder="e.g., 'eat quickly', 'study quietly'"
-                  value={selectedVerb}
-                  onChange={(e) => setSelectedVerb(e.target.value)}
-                />
-              </div>
+        {/* Reflection */}
+        <Card className="mt-8 bg-white dark:bg-gray-800 shadow-lg rounded-xl">
+          <CardHeader>
+            <CardTitle className="text-xl font-bold text-teal-700 dark:text-teal-400">
+              Reflection
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Label htmlFor="reflection" className="block text-md font-medium mb-2">
+              What did you learn from defining the problem?
+            </Label>
+            <Textarea
+              id="reflection"
+              value={reflection}
+              onChange={(e) => setReflection(e.target.value)}
+              rows={8}
+              placeholder="Reflect on your problem definition process..."
+              className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-teal-500"
+            />
+          </CardContent>
+        </Card>
 
-              {/* Step 1: Type a persona */}
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Type a persona</label>
-                <Input
-                  placeholder="e.g., 'students', 'commuters'"
-                  value={typedPersona}
-                  onChange={(e) => setTypedPersona(e.target.value)}
-                />
-              </div>
-
-              {/* Step 1: Type an outcome */}
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Type an insight</label>
-                <Input
-                  placeholder="e.g., 'they can focus better', 'they save time'"
-                  value={typedOutcome}
-                  onChange={(e) => setTypedOutcome(e.target.value)}
-                />
-              </div>
-
-              {/* Step 2: Turn into a "How Might We" question */}
-              <div className="space-y-2">
-                <label className="text-sm font-large">Step 2: Turn into a "How Might We" question</label><br /><br />
-                <label className="text-sm font-medium">Create a "How Might We" question based on the Problem Statement</label>
-                <Textarea
-                  placeholder="How might we help [persona] [verb] so that [outcome]? (Live Preview)"
-                  value={hmwQuestion}
-                  onChange={(e) => setHmwQuestion(e.target.value)}
-                  rows={3}
-                  className="resize-none font-mono"
-                />
-              </div>
-
-              <Button
-                onClick={handleAddHmw}
-                className="w-full bg-yellow-500 text-white hover:bg-yellow-600 text-lg py-6"
-                disabled={!hmwQuestion}
-              >
-                Add HMW
-              </Button>
-
-              {/* Added HMW Questions List */}
-              <div className="space-y-2">
-                <h3 className="text-xl font-bold">Added HMW Questions</h3>
-                <div className="p-4 bg-muted rounded-lg min-h-[100px] max-h-[200px] overflow-y-auto space-y-2">
-                  {addedHmwQuestions.length > 0 ? (
-                    addedHmwQuestions.map((hmw, index) => (
-                      <p key={index} className="text-sm bg-card p-2 rounded-md">{hmw}</p>
-                    ))
-                  ) : (
-                    <p className="text-muted-foreground">No HMW questions added yet.</p>
-                  )}
-                </div>
-              </div>
-
-
-
-              {/* Score Display */}
-              {stageData.define.score && (
-                <div className="space-y-2">
-                  <h2 className="text-xl font-bold">Score</h2>
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span>Specificity</span>
-                      <span>{stageData.define.score}/100</span>
-                    </div>
-                    <Progress value={stageData.define.score} className="h-3" />
-                  </div>
-                </div>
-              )}
-
-              {/* Reflection */}
-              <div className="space-y-4">
-                <h2 className="text-2xl font-bold">Reflection</h2>
-                <Textarea
-                  placeholder="How does this HMW statement help address the problem?"
-                  value={reflection}
-                  onChange={(e) => setReflection(e.target.value)}
-                  rows={4}
-                  className="resize-none"
-                />
-              </div>
-
-              {/* Actions */}
-              <div className="flex justify-between">
-                <Button variant="outline" onClick={() => navigate('/map')}>
-                  Back to Map
-                </Button>
-                <Button
-                  onClick={handleSubmit}
-                  disabled={isSubmitting || addedHmwQuestions.length === 0}
-                  size="lg"
-                  className="bg-secondary text-secondary-foreground hover:bg-secondary/90"
-                >
-                  {isSubmitting ? 'Submitting...' : 'Submit'}
-                </Button>
-              </div>
-            </div>
-          </div>
-        </motion.div>
-        {/* Theme Details Dialog */}
-        <Dialog open={showThemeDialog} onOpenChange={setShowThemeDialog}>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle>{selectedTheme?.title}</DialogTitle>
-            </DialogHeader>
-            <div className="py-4">
-              <p className="text-sm text-muted-foreground">{selectedTheme?.text}</p>
-            </div>
-            <div className="flex justify-end">
-              <Button onClick={() => setShowThemeDialog(false)}>Close</Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-
-        {/* Analysis Results Dialog */}
-        <Dialog open={showAnalysisDialog} onOpenChange={setShowAnalysisDialog}>
-          <DialogContent className="max-w-2xl">
-            <DialogHeader>
-              <DialogTitle>Analysis Results</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 py-4 max-h-[70vh] overflow-y-auto pr-4">
-              {analysisResults.errorMessage && (
-                <p className="text-red-500 font-bold">Error: {analysisResults.errorMessage}</p>
-              )}
-              <p className="text-lg font-semibold">Score: {analysisResults.score}/100</p>
-              <div>
-                <h3 className="font-bold">Strengths:</h3>
-                <p>{analysisResults.strengths}</p>
-              </div>
-              <div>
-                <h3 className="font-bold">Improvements:</h3>
-                <p>{analysisResults.improvements}</p>
-              </div>
-              <div>
-                <h3 className="font-bold">Suggestions:</h3>
-                <ul className="list-disc list-inside ml-4">
-                  {analysisResults.suggestions.map((suggestion, index) => (
-                    <li key={index}>{suggestion}</li>
-                  ))}
-                </ul>
-              </div>
-              <div>
-                <h3 className="font-bold">Overall Comment:</h3>
-                <p>{analysisResults.overallComment}</p>
-              </div>
-            </div>
-            <div className="flex justify-end">
-              <Button onClick={() => setShowAnalysisDialog(false)}>Close</Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+        <div className="flex justify-center mt-8">
+          <Button onClick={handleAnalyze} disabled={isLoading} className="px-8 py-3 text-lg">
+            {isLoading ? (
+              <>
+                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                Analyzing...
+              </>
+            ) : (
+              'Analyze & Proceed to Ideate'
+            )}
+          </Button>
+        </div>
       </div>
     </div>
   );

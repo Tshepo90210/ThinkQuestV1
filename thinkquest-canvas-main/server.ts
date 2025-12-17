@@ -102,7 +102,7 @@ app.post('/api/gemini-score', upload.array('files', 5), async (req: express.Requ
   }
 
   try {
-
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
     console.log('Using Gemini model for scoring:', 'gemini-1.5-flash');
 
     let prompt = '';
@@ -196,7 +196,7 @@ app.post('/api/gemini-score', upload.array('files', 5), async (req: express.Requ
             const firstBrace = text.indexOf('{');
             const lastBrace = text.lastIndexOf('}');
             if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
-                jsonString = text.substring(firstBrce, lastBrace + 1);
+                jsonString = text.substring(firstBrace, lastBrace + 1);
             }
         }
         parsedResponse = JSON.parse(jsonString);
