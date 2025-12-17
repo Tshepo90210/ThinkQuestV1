@@ -44,8 +44,8 @@ On the configuration screen, fill in the details as follows. This is the most im
 
 | Key | Value | Description |
 | :--- | :--- | :--- |
-| `OPENAI_API_KEY` | `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` | Your secret API key for OpenAI. |
-| `VITE_POCKETBASE_URL` | `http://127.0.0.1:8090` | The full URL to your live PocketBase instance. |
+| `OPENAI_API_KEY` | `your_openai_api_key_here` | Your secret API key for OpenAI. |
+| `VITE_POCKETBASE_URL` | `your_pockethost_url_here` | The full URL to your live PocketBase instance. |
 | `NODE_VERSION` | `20.11.1` | Specifies the version of Node.js to use. |
 
 **Important**: Ensure the keys match exactly, as they are case-sensitive.
