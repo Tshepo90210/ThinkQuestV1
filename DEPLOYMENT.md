@@ -7,7 +7,7 @@ This guide provides step-by-step instructions for deploying your ThinkQuest appl
 1.  **GitHub Repository**: Your project code, including all the recent changes we made, must be pushed to a GitHub repository.
 2.  **Render Account**: You need an account on [Render](https://render.com/). You can sign up with your GitHub account.
 3.  **PocketBase Instance**: Your application requires a running PocketBase instance. If you're only using it for this project, you can get a free one at a service like [PocketHost](https://pockethost.io/).
-3.  **OpenAI API Key**: You need an OpenAI API key for the generative AI features. You can get one from [OpenAI](https://platform.openai.com/account/api-keys).
+4.  **Gemini API Key**: You need a Google AI API key for the generative AI features. You can get one from [Google AI Studio](https://aistudio.google.com/app/apikey).
 
 ---
 
@@ -44,7 +44,7 @@ On the configuration screen, fill in the details as follows. This is the most im
 
 | Key | Value | Description |
 | :--- | :--- | :--- |
-| `OPENAI_API_KEY` | `your_openai_api_key_here` | Your secret API key for OpenAI. |
+| `GEMINI_API_KEY` | `your_google_api_key_here` | Your secret API key for Google AI. |
 | `VITE_POCKETBASE_URL` | `your_pockethost_url_here` | The full URL to your live PocketBase instance. |
 | `NODE_VERSION` | `20.11.1` | Specifies the version of Node.js to use. |
 
