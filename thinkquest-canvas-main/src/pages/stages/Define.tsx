@@ -24,7 +24,6 @@ interface HowMightWe {
 
 const Define: React.FC = () => {
   const {
-    selectedProblem,
     addHmwList,
     addSelectedProblem,
     addThemes,
