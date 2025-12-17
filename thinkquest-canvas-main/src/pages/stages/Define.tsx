@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useThinkQuestStore } from '../../store/useThinkQuestStore';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
-import { ProblemDetailsOverlay } from '../../components/ProblemDetailsOverlay';
+import ProblemDetailsOverlay from '../../components/ProblemDetailsOverlay';
 import { Button } from '../../components/ui/button';
 import { Textarea } from '../../components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
