@@ -7,7 +7,7 @@ import { Button } from '../../components/ui/button';
 import { Textarea } from '../../components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Label } from '../../components/ui/label';
-import { useToast } from '../../hooks/use-toast';
+import { toast } from '../../hooks/use-toast';
 import { Separator } from '../../components/ui/separator';
 import {
   Accordion,
@@ -33,7 +33,7 @@ const Prototype: React.FC = () => {
     timelineNotes: storedTimelineNotes,
   } = useThinkQuestStore();
   const navigate = useNavigate();
-  const { toast } = useToast();
+
 
   const [selectedProblem] = useState(storedSelectedProblem || '');
   const [selectedTop3Ideas] = useState<string[]>(storedSelectedTop3Ideas || []);

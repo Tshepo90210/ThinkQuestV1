@@ -14,7 +14,7 @@ import { Button } from '../../components/ui/button';
 import { Textarea } from '../../components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Label } from '../../components/ui/label';
-import { useToast } from '../../hooks/use-toast';
+import { toast } from '../../hooks/use-toast';
 import { Separator } from '../../components/ui/separator';
 import {
   Accordion,
@@ -49,7 +49,7 @@ const Empathize: React.FC = () => {
     themes: storedThemes,
   } = useThinkQuestStore();
   const navigate = useNavigate();
-  const { toast } = useToast();
+
 
   const [empathyMapInput, setEmpathyMapInput] = useState(storedEmpathyMapInput || '');
   const [reflection, setReflection] = useState(storedReflection || '');
@@ -181,7 +181,7 @@ const Empathize: React.FC = () => {
           reflection,
           insights,
           themes,
-          selectedProblem: currentProblem,
+          selectedProblem: selectedProblem,
         }),
       });
 

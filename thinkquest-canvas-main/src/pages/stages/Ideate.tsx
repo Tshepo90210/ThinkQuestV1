@@ -7,7 +7,7 @@ import { Button } from '../../components/ui/button';
 import { Textarea } from '../../components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Label } from '../../components/ui/label';
-import { useToast } from '../../hooks/use-toast';
+import { toast } from '../../hooks/use-toast';
 import { Separator } from '../../components/ui/separator';
 import {
   Accordion,
@@ -35,7 +35,7 @@ const Ideate: React.FC = () => {
     rationaleMap: storedRationaleMap,
   } = useThinkQuestStore();
   const navigate = useNavigate();
-  const { toast } = useToast();
+
 
   const [hmwList, setHmwList] = useState<HowMightWe[]>(storedHmwList || []);
   const [newHmw, setNewHmw] = useState('');
@@ -166,7 +166,7 @@ const Ideate: React.FC = () => {
         selectedTop3Ideas,
         rationaleMap,
         reflection,
-        selectedProblem: currentProblem,
+        selectedProblem: selectedProblem,
       });
 
       navigate('/stages/prototype', { state: { scoreResult: result } });

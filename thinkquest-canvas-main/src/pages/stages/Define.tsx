@@ -7,7 +7,7 @@ import { Button } from '../../components/ui/button';
 import { Textarea } from '../../components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Label } from '../../components/ui/label';
-import { useToast } from '../../hooks/use-toast';
+import { toast } from '../../hooks/use-toast';
 import { Separator } from '../../components/ui/separator';
 import {
   Accordion,
@@ -36,7 +36,7 @@ const Define: React.FC = () => {
   } = useThinkQuestStore();
   const navigate = useNavigate();
   const location = useLocation();
-  const { toast } = useToast();
+
 
   const [hmwList, setHmwList] = useState<HowMightWe[]>(storedHmwList || []);
   const [newHmw, setNewHmw] = useState('');
