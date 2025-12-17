@@ -24,7 +24,7 @@ interface HowMightWe {
 
 const Ideate: React.FC = () => {
   const {
-    currentProblem,
+    selectedProblem: currentProblem,
     hmwList: storedHmwList,
     selectedProblem: storedSelectedProblem,
     reflection: storedReflection,
@@ -50,7 +50,7 @@ const Ideate: React.FC = () => {
   const [problemDetailsOpen, setProblemDetailsOpen] = useState(false);
 
   useEffect(() => {
-    if (!currentProblem) {
+    if (!selectedProblem) {
       toast({
         title: 'No Problem Selected',
         description: 'Please select a problem from the map to start ideating.',
@@ -58,9 +58,9 @@ const Ideate: React.FC = () => {
       });
       navigate('/map');
     }
-  }, [currentProblem, navigate, toast]);
+  }, [selectedProblem, navigate, toast]);
 
-  if (!currentProblem) {
+  if (!selectedProblem) {
     return null; // Or a loading spinner, as the useEffect will redirect
   }
 
@@ -145,7 +145,7 @@ const Ideate: React.FC = () => {
           selectedTop3Ideas,
           rationaleMap,
           reflection,
-          selectedProblem: currentProblem,
+          selectedProblem: selectedProblem,
           empathyMapInput: storedEmpathyMapInput,
           insights: storedInsights,
           themes: storedThemes,
@@ -200,7 +200,7 @@ const Ideate: React.FC = () => {
         <ProblemDetailsOverlay
           isOpen={problemDetailsOpen}
           onClose={() => setProblemDetailsOpen(false)}
-          problem={currentProblem}
+          problem={selectedProblem}
         />
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">

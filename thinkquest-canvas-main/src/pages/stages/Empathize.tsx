@@ -38,7 +38,7 @@ interface Theme {
 
 const Empathize: React.FC = () => {
   const {
-    currentProblem,
+    selectedProblem,
     addEmpathyMapInput,
     addReflection,
     addInsights,
@@ -78,7 +78,7 @@ const Empathize: React.FC = () => {
     themesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [themes]);
 
-  if (!currentProblem) {
+  if (!selectedProblem) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen p-4 bg-gray-100 dark:bg-gray-900">
         <Card className="w-full max-w-md">
@@ -229,7 +229,7 @@ const Empathize: React.FC = () => {
         <ProblemDetailsOverlay
           isOpen={problemDetailsOpen}
           onClose={() => setProblemDetailsOpen(false)}
-          problem={currentProblem}
+          problem={selectedProblem}
         />
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">

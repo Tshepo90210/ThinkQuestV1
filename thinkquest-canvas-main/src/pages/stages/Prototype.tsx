@@ -24,7 +24,7 @@ interface Idea {
 
 const Prototype: React.FC = () => {
   const {
-    currentProblem,
+    selectedProblem,
     selectedProblem: storedSelectedProblem,
     selectedTop3Ideas: storedSelectedTop3Ideas,
     rationaleMap: storedRationaleMap,
@@ -72,7 +72,7 @@ const Prototype: React.FC = () => {
   const [problemDetailsOpen, setProblemDetailsOpen] = useState(false);
 
   useEffect(() => {
-    if (!currentProblem || selectedTop3Ideas.length === 0) {
+    if (!selectedProblem || selectedTop3Ideas.length === 0) {
       toast({
         title: 'Missing Information',
         description: 'Please complete previous stages and select top ideas.',
@@ -80,9 +80,9 @@ const Prototype: React.FC = () => {
       });
       navigate('/map');
     }
-  }, [currentProblem, selectedTop3Ideas.length, navigate, toast]);
+  }, [selectedProblem, selectedTop3Ideas.length, navigate, toast]);
 
-  if (!currentProblem || selectedTop3Ideas.length === 0) {
+  if (!selectedProblem || selectedTop3Ideas.length === 0) {
     return null; // Or a loading spinner
   }
 
@@ -236,7 +236,7 @@ const Prototype: React.FC = () => {
         <ProblemDetailsOverlay
           isOpen={problemDetailsOpen}
           onClose={() => setProblemDetailsOpen(false)}
-          problem={currentProblem}
+          problem={selectedProblem}
         />
 
         {/* Selected Idea Display */}
