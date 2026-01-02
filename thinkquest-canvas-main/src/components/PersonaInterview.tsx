@@ -18,7 +18,7 @@ import { useSpeech } from '../hooks/useSpeech';
 export const PersonaInterview: React.FC = () => {
   const { selectedProblem } = useThinkQuestStore();
   const [selectedPersona, setSelectedPersona] = useState<Persona | null>(null);
-  const [interviewLog, setInterviewLog] = useState<{ user: string; persona: string }[]>([]);
+  const [allInterviewLogs, setAllInterviewLogs] = useState<{[personaId: string]: { user: string; persona: string }[]}>({});
   const [userInput, setUserInput] = useState('');
   const [isTtsEnabled, setIsTtsEnabled] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
@@ -31,9 +31,11 @@ export const PersonaInterview: React.FC = () => {
 
   const interviewLogEndRef = useRef<HTMLDivElement>(null);
 
+  const currentInterviewLog = selectedPersona ? allInterviewLogs[selectedPersona.id] || [] : [];
+
   useEffect(() => {
     interviewLogEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [interviewLog]);
+  }, [currentInterviewLog]);
 
   if (!selectedProblem) {
     return null; // Don't render if no problem is selected
@@ -44,14 +46,15 @@ export const PersonaInterview: React.FC = () => {
   const handlePersonaSelect = (personaId: string) => {
     const persona = personas.find((p) => p.id.toString() === personaId);
     setSelectedPersona(persona || null);
-    setInterviewLog([]);
   };
 
   const handleSendMessage = async () => {
     if (!userInput.trim() || !selectedPersona) return;
 
-    const newInterviewLog = [...interviewLog, { user: userInput, persona: '...' }];
-    setInterviewLog(newInterviewLog);
+    const newLogEntry = { user: userInput, persona: '...' };
+    const updatedLog = [...currentInterviewLog, newLogEntry];
+    setAllInterviewLogs({ ...allInterviewLogs, [selectedPersona.id]: updatedLog });
+    
     const message = userInput;
     setUserInput('');
     setIsLoading(true);
@@ -79,7 +82,9 @@ export const PersonaInterview: React.FC = () => {
       const data = await response.json();
       const aiResponse = data.response;
 
-      setInterviewLog([...newInterviewLog.slice(0, -1), { user: message, persona: aiResponse }]);
+      const finalLog = [...updatedLog.slice(0, -1), { user: message, persona: aiResponse }];
+      setAllInterviewLogs({ ...allInterviewLogs, [selectedPersona.id]: finalLog });
+
       if (isTtsEnabled) {
         speak(aiResponse);
       }
@@ -87,7 +92,8 @@ export const PersonaInterview: React.FC = () => {
     } catch (error) {
       console.error('Error interviewing persona:', error);
       const errorMessage = 'Sorry, I am having trouble responding right now.';
-      setInterviewLog([...newInterviewLog.slice(0, -1), { user: message, persona: errorMessage }]);
+      const errorLog = [...updatedLog.slice(0, -1), { user: message, persona: errorMessage }];
+      setAllInterviewLogs({ ...allInterviewLogs, [selectedPersona.id]: errorLog });
       if (isTtsEnabled) {
         speak(errorMessage);
       }
@@ -165,7 +171,7 @@ export const PersonaInterview: React.FC = () => {
             </p>
             
             <div className="h-64 overflow-y-auto p-4 border rounded-lg mb-4 bg-gray-50 dark:bg-gray-700">
-              {interviewLog.map((entry, index) => (
+              {currentInterviewLog.map((entry, index) => (
                 <div key={index} className="mb-4">
                   <p className="font-semibold text-blue-600 dark:text-blue-400">You:</p>
                   <p className="mb-2 whitespace-pre-wrap">{entry.user}</p>
