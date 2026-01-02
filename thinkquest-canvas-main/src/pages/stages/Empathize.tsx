@@ -22,6 +22,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '../../components/ui/accordion';
+import { PersonaInterview } from '../../components/PersonaInterview';
 
 // Define types for insights
 interface Insight {
@@ -232,6 +233,8 @@ const Empathize: React.FC = () => {
             onClose={() => setProblemDetailsOpen(false)}
           />
         )}
+
+        <PersonaInterview />
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Empathy Map Input */}
