@@ -226,11 +226,12 @@ const Empathize: React.FC = () => {
           </Button>
         </div>
 
-        <ProblemDetailsOverlay
-          isOpen={problemDetailsOpen}
-          onClose={() => setProblemDetailsOpen(false)}
-          problem={selectedProblem}
-        />
+        {problemDetailsOpen && (
+          <ProblemDetailsOverlay
+            problem={selectedProblem}
+            onClose={() => setProblemDetailsOpen(false)}
+          />
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Empathy Map Input */}

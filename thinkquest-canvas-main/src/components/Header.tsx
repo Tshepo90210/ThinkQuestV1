@@ -1,5 +1,6 @@
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Menu, Star, User, LogOut, HelpCircle, Lock, Check } from 'lucide-react';
+import { toast } from 'sonner';
 import { useThinkQuestStore } from '@/store/useThinkQuestStore';
 import {
   DropdownMenu,

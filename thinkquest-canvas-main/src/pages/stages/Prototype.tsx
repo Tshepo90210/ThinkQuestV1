@@ -232,11 +232,12 @@ const Prototype: React.FC = () => {
           </Button>
         </div>
 
-        <ProblemDetailsOverlay
-          isOpen={problemDetailsOpen}
-          onClose={() => setProblemDetailsOpen(false)}
-          problem={selectedProblem}
-        />
+        {problemDetailsOpen && (
+          <ProblemDetailsOverlay
+            problem={storedSelectedProblem}
+            onClose={() => setProblemDetailsOpen(false)}
+          />
+        )}
 
         {/* Selected Idea Display */}
         {selectedTop3Ideas.length > 0 && (
