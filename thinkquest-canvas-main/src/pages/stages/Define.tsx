@@ -72,18 +72,56 @@ const Define: React.FC = () => {
   };
 
   const handleAnalyze = async () => {
-    // Temporarily disabled for debugging and development
-    addHmwList(hmwList);
-    addSelectedProblem(selectedProblem);
-    addThemes(themes);
-    addReflection(reflection);
+    if (hmwList.length === 0 || !selectedProblem || themes.length === 0 || !reflection) {
+      toast({
+        title: 'Missing Information',
+        description: 'Please complete all sections before analyzing.',
+        variant: 'destructive',
+      });
+      return;
+    }
 
-    const dummyScoreResult = {
-      score: 100,
-      feedback: 'AI analysis bypassed for development.',
-    };
+    setIsLoading(true);
+    try {
+      console.log('Define.tsx: Sending to /api/gemini-score with body:');
+      const response = await fetch(`/api/gemini-score`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          stage: 'define',
+          hmwList: hmwList.map((hmw) => hmw.statement),
+          selectedProblem,
+          themes,
+          reflection,
+        }),
+      });
 
-    navigate('/stages/ideate', { state: { scoreResult: dummyScoreResult } });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to get score from AI...');
+      }
+
+      const result = await response.json();
+      console.log('Define stage AI score result:', result);
+
+      addHmwList(hmwList);
+      addSelectedProblem(selectedProblem);
+      addThemes(themes);
+      addReflection(reflection);
+
+      navigate('/stages/ideate', { state: { scoreResult: result } });
+    } catch (error) {
+      console.error('Error analyzing define stage with Gemini API:', error);
+      toast({
+        title: 'Analysis Failed',
+        description: (error as Error).message || 'Failed to analyze define stage with AI.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (

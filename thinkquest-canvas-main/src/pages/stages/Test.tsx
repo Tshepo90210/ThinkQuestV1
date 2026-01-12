@@ -393,6 +393,7 @@ const Test = () => {
               size="lg"
               className="bg-blue-500 text-white hover:bg-blue-600"
               onClick={handleSubmit}
+              disabled={(stageData.test.reflection?.length || 0) < 50}
             >
               Complete Quest
             </Button>

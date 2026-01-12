@@ -157,18 +157,59 @@ const Empathize: React.FC = () => {
   };
 
   const handleAnalyze = async () => {
-    // Temporarily disabled for debugging and development
-    addEmpathyMapInput(empathyMapInput);
-    addReflection(reflection);
-    addInsights(insights);
-    addThemes(themes);
+    if (!empathyMapInput || !reflection || insights.length === 0 || themes.length === 0) {
+      toast({
+        title: 'Missing Information',
+        description: 'Please complete all sections before analyzing.',
+        variant: 'destructive',
+      });
+      return;
+    }
 
-    const dummyScoreResult = {
-      score: 100,
-      feedback: 'AI analysis bypassed for development.',
-    };
+    setIsLoading(true);
+    try {
+      console.log('Empathize Stage: formattedInsights being saved: ', insights);
+      console.log('Empathize Stage: themes being saved: ', themes);
 
-    navigate('/stages/define', { state: { scoreResult: dummyScoreResult } });
+      const response = await fetch('/api/gemini-score', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          stage: 'empathy',
+          empathyMapInput,
+          reflection,
+          insights,
+          themes,
+          selectedProblem: selectedProblem,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to get score from AI...');
+      }
+
+      const result = await response.json();
+      console.log('Empathy stage AI score result:', result);
+
+      addEmpathyMapInput(empathyMapInput);
+      addReflection(reflection);
+      addInsights(insights);
+      addThemes(themes);
+
+      navigate('/stages/define', { state: { scoreResult: result } });
+    } catch (error) {
+      console.error('Error analyzing empathy map with Gemini API:', error);
+      toast({
+        title: 'Analysis Failed',
+        description: (error as Error).message || 'Failed to analyze empathy map with AI.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (

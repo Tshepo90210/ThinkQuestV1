@@ -110,22 +110,74 @@ const Ideate: React.FC = () => {
   };
 
   const handleAnalyze = async () => {
-    // Temporarily disabled for debugging and development
-    addIdeationData({
-      hmwList,
-      ideas,
-      selectedTop3Ideas,
-      rationaleMap,
-      reflection,
-      selectedProblem: selectedProblem,
-    });
+    if (selectedTop3Ideas.length === 0) {
+      toast({
+        title: 'Missing Selection',
+        description: 'Please select at least one top idea.',
+        variant: 'destructive',
+      });
+      return;
+    }
 
-    const dummyScoreResult = {
-      score: 100,
-      feedback: 'AI analysis bypassed for development.',
-    };
+    const allRationaleProvided = selectedTop3Ideas.every((idea) => rationaleMap[idea]);
+    if (!allRationaleProvided) {
+      toast({
+        title: 'Missing Rationale',
+        description: 'Please provide rationale for all selected top ideas.',
+        variant: 'destructive',
+      });
+      return;
+    }
 
-    navigate('/stages/prototype', { state: { scoreResult: dummyScoreResult } });
+    setIsLoading(true);
+    try {
+      const response = await fetch(`/api/gemini-score`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          stage: 'ideate',
+          hmw: hmwList.map((hmw) => hmw.statement),
+          ideas, // All generated ideas
+          selectedTop3Ideas,
+          rationaleMap,
+          reflection,
+          selectedProblem: selectedProblem,
+          empathyMapInput: storedEmpathyMapInput,
+          insights: storedInsights,
+          themes: storedThemes,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to get score from AI...');
+      }
+
+      const result = await response.json();
+      console.log('Ideate stage AI score result:', result);
+
+      addIdeationData({
+        hmwList,
+        ideas,
+        selectedTop3Ideas,
+        rationaleMap,
+        reflection,
+        selectedProblem: selectedProblem,
+      });
+
+      navigate('/stages/prototype', { state: { scoreResult: result } });
+    } catch (error) {
+      console.error('Error analyzing ideation with Gemini API:', error);
+      toast({
+        title: 'Analysis Failed',
+        description: (error as Error).message || 'Failed to analyze ideation with AI.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
