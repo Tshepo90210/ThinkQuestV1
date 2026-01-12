@@ -155,66 +155,15 @@ const Prototype: React.FC = () => {
   };
 
   const handleAnalyze = async () => {
-    // Basic validation
-    if (
-      Object.values(posterNotes).every((arr) => arr.length === 0) &&
-      Object.values(timelineNotes).every((arr) => arr.length === 0) &&
-      uploads.length === 0
-    ) {
-      toast({
-        title: 'Missing Prototype Details',
-        description: 'Please provide some details for your prototype before analyzing.',
-        variant: 'destructive',
-      });
-      return;
-    }
+    // Temporarily disabled for debugging and development
+    addPrototypeData({ posterNotes, timelineNotes });
 
-    setIsLoading(true);
-    try {
-      const allPosterNotes = Object.entries(posterNotes)
-        .map(([key, notes]) => `${key}:\n${notes.map((note) => `- ${note}`).join('\n')}`)
-        .join('\n\n');
-      const allTimelineNotes = Object.entries(timelineNotes)
-        .map(([key, notes]) => `${key}:\n${notes.map((note) => `- ${note}`).join('\n')}`)
-        .join('\n\n');
+    const dummyScoreResult = {
+      score: 100,
+      feedback: 'AI analysis bypassed for development.',
+    };
 
-      const prompt = `Selected Idea: ${selectedTop3Ideas.join(', ')}\n\nConcept Poster:\n${allPosterNotes}\n\nTimeline/Roadmap:\n${allTimelineNotes}`;
-
-      const response = await fetch(`/api/gemini-score-prototype`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          selectedIdea: selectedTop3Ideas[0], // Assuming only one selected for score prompt
-          poster: allPosterNotes,
-          timeline: allTimelineNotes,
-          uploads: uploads,
-          prompt: prompt, // Sending consolidated prompt
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to get score from AI...');
-      }
-
-      const result = await response.json();
-      console.log('Prototype stage AI score result:', result);
-
-      addPrototypeData({ posterNotes, timelineNotes });
-
-      navigate('/stages/test', { state: { scoreResult: result } });
-    } catch (error) {
-      console.error('Error analyzing prototype with Gemini API:', error);
-      toast({
-        title: 'Analysis Failed',
-        description: (error as Error).message || 'Failed to analyze prototype with AI.',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsLoading(false);
-    }
+    navigate('/stages/test', { state: { scoreResult: dummyScoreResult } });
   };
 
   return (
