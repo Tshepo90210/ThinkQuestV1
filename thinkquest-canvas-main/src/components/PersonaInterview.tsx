@@ -60,34 +60,47 @@ export const PersonaInterview: React.FC = () => {
     setIsLoading(true);
 
     try {
-      const response = await fetch('/api/gemini-interview', {
+      const response = await fetch('/api/gemini-chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          message,
-          persona: {
-            name: selectedPersona.name,
-            role: selectedPersona.role,
-            backstory: selectedPersona.backstory,
-          },
+          name: selectedPersona.name,
+          role: selectedPersona.role,
+          backstory: selectedPersona.backstory,
+          question: message,
         }),
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to get response from AI');
+      if (!response.body) {
+        throw new Error('No response body');
       }
 
-      const data = await response.json();
-      const aiResponse = data.response;
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let aiResponse = '';
+      
+      const processStream = async () => {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
 
-      const finalLog = [...updatedLog.slice(0, -1), { user: message, persona: aiResponse }];
-      setAllInterviewLogs({ ...allInterviewLogs, [selectedPersona.id]: finalLog });
-
-      if (isTtsEnabled) {
-        speak(aiResponse);
-      }
+          aiResponse += decoder.decode(value, { stream: true });
+          const currentLogWithStreaming = [...updatedLog.slice(0, -1), { user: message, persona: aiResponse + '...' }];
+          setAllInterviewLogs({ ...allInterviewLogs, [selectedPersona.id]: currentLogWithStreaming });
+        }
+        
+        const finalLog = [...updatedLog.slice(0, -1), { user: message, persona: aiResponse }];
+        setAllInterviewLogs({ ...allInterviewLogs, [selectedPersona.id]: finalLog });
+        
+        if (isTtsEnabled) {
+          speak(aiResponse);
+        }
+        setIsLoading(false);
+      };
+      
+      processStream();
 
     } catch (error) {
       console.error('Error interviewing persona:', error);
@@ -97,7 +110,6 @@ export const PersonaInterview: React.FC = () => {
       if (isTtsEnabled) {
         speak(errorMessage);
       }
-    } finally {
       setIsLoading(false);
     }
   };
